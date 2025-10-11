@@ -14,6 +14,29 @@ interface ChannelListOverlayProps {
   onClose: () => void;
 }
 
+const ChannelImage = ({ channel }: { channel: Channel }) => {
+    const [imgSrc, setImgSrc] = useState(channel.logo);
+  
+    useEffect(() => {
+      setImgSrc(channel.logo);
+    }, [channel.logo]);
+  
+    if (imgSrc) {
+      return (
+        <Image
+          src={imgSrc}
+          alt={channel.name}
+          width={80}
+          height={45}
+          className="object-contain max-h-12 w-auto"
+          onError={() => setImgSrc(null)}
+        />
+      );
+    }
+  
+    return <Tv className="w-10 h-10 mb-1 text-muted-foreground" />;
+  };
+
 const ChannelListOverlay = React.forwardRef<HTMLDivElement, ChannelListOverlayProps>(({ allChannels, currentChannel, onClose }, ref) => {
   const router = useRouter();
   const [selectedIndex, setSelectedIndex] = useState(currentChannel.index);
@@ -36,13 +59,13 @@ const ChannelListOverlay = React.forwardRef<HTMLDivElement, ChannelListOverlayPr
         case 'ArrowLeft':
           setSelectedIndex(prev => {
             const newIndex = Math.max(0, prev - 1);
-            return allChannels[newIndex] ? newIndex : prev;
+            return allChannels.find(c => c.index === newIndex) ? newIndex : prev;
           });
           break;
         case 'ArrowRight':
           setSelectedIndex(prev => {
             const newIndex = Math.min(allChannels.length - 1, prev + 1);
-            return allChannels[newIndex] ? newIndex : prev;
+            return allChannels.find(c => c.index === newIndex) ? newIndex : prev;
           });
           break;
         case 'Enter':
@@ -86,18 +109,7 @@ const ChannelListOverlay = React.forwardRef<HTMLDivElement, ChannelListOverlayPr
                 )}
                 >
                 <CardContent className="flex flex-col items-center justify-center h-full p-2 text-center relative overflow-hidden">
-                    {chan.logo ? (
-                    <Image 
-                        src={chan.logo} 
-                        alt={chan.name} 
-                        width={80} 
-                        height={45} 
-                        className="object-contain max-h-12 w-auto" 
-                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                    />
-                    ) : (
-                    <Tv className="w-10 h-10 mb-1 text-muted-foreground" />
-                    )}
+                    <ChannelImage channel={chan} />
                     <p className="text-xs text-foreground truncate w-full mt-auto">{chan.name}</p>
                 </CardContent>
                 </Card>
