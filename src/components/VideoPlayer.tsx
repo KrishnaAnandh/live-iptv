@@ -10,11 +10,13 @@ import { Star, Loader2, AlertTriangle } from 'lucide-react';
 import ChannelListOverlay from './ChannelListOverlay';
 import { cn } from '@/lib/utils';
 
+export type OverlayState = 'hidden' | 'list' | 'grid';
+
 export default function VideoPlayer({ channel, allChannels }: { channel: Channel; allChannels: Channel[] }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const { isFavorite, addFavorite, removeFavorite } = useFavorites();
   const [showUi, setShowUi] = useState(true);
-  const [showChannelList, setShowChannelList] = useState(false);
+  const [overlayState, setOverlayState] = useState<OverlayState>('hidden');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const uiTimeoutRef = useRef<NodeJS.Timeout>();
@@ -63,6 +65,7 @@ export default function VideoPlayer({ channel, allChannels }: { channel: Channel
     video.addEventListener('canplay', onCanPlay);
 
     bringUpUi();
+    setOverlayState('hidden');
 
     return () => {
       if (hls) {
@@ -74,14 +77,14 @@ export default function VideoPlayer({ channel, allChannels }: { channel: Channel
   }, [channel.url, bringUpUi]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if (showChannelList) return;
+    if (overlayState !== 'hidden') return;
     
     bringUpUi();
 
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
-        setShowChannelList(true);
+        setOverlayState('list');
         break;
       case ' ': // Space or Play/Pause button
       case 'MediaPlayPause':
@@ -92,16 +95,18 @@ export default function VideoPlayer({ channel, allChannels }: { channel: Channel
       case 'MediaTrackPrevious':
         e.preventDefault();
         const prevIndex = Math.max(0, channel.index - 1);
-        router.push(`/channels/${prevIndex}`);
+        const prevChannel = allChannels.find(c => c.index === prevIndex);
+        if (prevChannel) router.push(`/channels/${prevChannel.index}`);
         break;
       case 'ArrowRight':
       case 'MediaTrackNext':
         e.preventDefault();
         const nextIndex = Math.min(allChannels.length - 1, channel.index + 1);
-        router.push(`/channels/${nextIndex}`);
+        const nextChannel = allChannels.find(c => c.index === nextIndex);
+        if (nextChannel) router.push(`/channels/${nextChannel.index}`);
         break;
     }
-  }, [bringUpUi, showChannelList, channel.index, allChannels.length, router]);
+  }, [bringUpUi, overlayState, channel.index, allChannels, router]);
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
@@ -114,7 +119,7 @@ export default function VideoPlayer({ channel, allChannels }: { channel: Channel
   };
 
   return (
-    <div className="w-full h-full bg-black flex items-center justify-center" onMouseMove={bringUpUi}>
+    <div className="w-full h-full bg-black flex items-center justify-center" onClick={bringUpUi}>
       <video ref={videoRef} className="w-full h-full object-contain" playsInline />
       
       <div className={cn("fixed inset-0 transition-opacity duration-500 pointer-events-none", showUi ? 'opacity-100' : 'opacity-0')}>
@@ -145,11 +150,12 @@ export default function VideoPlayer({ channel, allChannels }: { channel: Channel
         </div>
       )}
 
-      {showChannelList && (
+      {overlayState !== 'hidden' && (
         <ChannelListOverlay
           allChannels={allChannels}
           currentChannel={channel}
-          onClose={() => setShowChannelList(false)}
+          initialState={overlayState}
+          setOverlayState={setOverlayState}
         />
       )}
     </div>
