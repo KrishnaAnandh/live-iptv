@@ -61,13 +61,21 @@ const ChannelListOverlay = ({ allChannels, currentChannel, favoriteChannelIds, i
   }, [allChannels, favoriteChannels]);
   
   const { favoriteItems, nonFavoriteItems } = useMemo(() => {
-    let sourceChannels = allChannels;
-    if (searchTerm) {
-        sourceChannels = allChannels.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase()));
-    }
+    let sourceChannels = searchTerm
+      ? allChannels.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase()))
+      : allChannels;
+
     const favoriteSet = new Set(favoriteChannelIds);
-    const favs = sourceChannels.filter(c => favoriteSet.has(c.id));
-    const nonFavs = sourceChannels.filter(c => !favoriteSet.has(c.id));
+    const favs = [];
+    const nonFavs = [];
+
+    for (const channel of sourceChannels) {
+      if (favoriteSet.has(channel.id)) {
+        favs.push(channel);
+      } else {
+        nonFavs.push(channel);
+      }
+    }
 
     // Re-order favorites based on favoriteChannelIds if not searching
     const orderedFavs = searchTerm ? favs : favoriteChannels.filter(c => favs.some(f => f.id === c.id));
@@ -253,7 +261,7 @@ const ChannelListOverlay = ({ allChannels, currentChannel, favoriteChannelIds, i
                         <CardContent className="flex flex-col items-center justify-center h-full p-2 text-center relative overflow-hidden">
                             <ChannelImage channel={chan} />
                             <p className="text-xs text-black truncate w-full mt-auto">{chan.name}</p>
-                            {currentChannel.index === chan.index && <span className="absolute w-3 h-3 bg-red-500 rounded-full top-2 right-2 animate-pulse duration-4000" />}
+                            {currentChannel.index === chan.index && <span className="absolute w-3 h-3 bg-pink-600 rounded-full top-2 right-2 animate-pulse duration-4000" />}
                         </CardContent>
                         </Card>
                     </div>
@@ -268,11 +276,11 @@ const ChannelListOverlay = ({ allChannels, currentChannel, favoriteChannelIds, i
 
         {initialState === 'grid' && (
             <div className="flex flex-col h-full w-full" tabIndex={-1}>
-                <div className="flex items-center mb-4">
+                <div className="flex items-center mb-4 justify-center">
                     <Button
                         variant="ghost"
                         size="icon"
-                        className="mr-4 text-white hover:bg-white/10"
+                        className="absolute left-4 text-white hover:bg-white/10 "
                         onClick={() => setOverlayState('hidden')}
                     >
                         <ArrowLeft className="w-6 h-6" />
@@ -288,11 +296,11 @@ const ChannelListOverlay = ({ allChannels, currentChannel, favoriteChannelIds, i
                 </div>
                 <div className="flex-1 overflow-y-auto no-scrollbar -mr-2">
                     <VirtualizedGrid
-                        favoriteItems={favoriteItems}
-                        nonFavoriteItems={nonFavoriteItems}
+                        items={[...favoriteItems, ...nonFavoriteItems]}
                         renderItem={renderChannelCard}
                         itemHeight={120} // Approximate height of a card, adjust as needed
                         gap={16}
+                        numFavorites={favoriteItems.length}
                         renderSeparator={() => (
                             <div className="col-span-full flex items-center my-4">
                                 <Star className="w-5 h-5 text-accent mr-2" />

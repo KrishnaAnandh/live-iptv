@@ -13,8 +13,8 @@ const getNumColumns = () => {
 };
 
 interface VirtualizedGridProps<T> {
-  favoriteItems: T[];
-  nonFavoriteItems: T[];
+  items: T[];
+  numFavorites: number;
   renderItem: (item: T) => React.ReactNode;
   itemHeight: number;
   gap: number;
@@ -23,8 +23,8 @@ interface VirtualizedGridProps<T> {
 }
 
 const VirtualizedGrid = <T extends { id: string | number }>({
-  favoriteItems,
-  nonFavoriteItems,
+  items,
+  numFavorites,
   renderItem,
   itemHeight,
   gap,
@@ -51,29 +51,24 @@ const VirtualizedGrid = <T extends { id: string | number }>({
   const separatorHeight = 80;
   const afterFavoritesHeight = 50;
 
-  const hasFavorites = favoriteItems.length > 0;
+  const hasFavorites = numFavorites > 0;
   const hasSeparator = hasFavorites && renderSeparator;
   const hasAfterFavorites = hasFavorites && renderAfterFavorites;
 
   const containerHeight = containerRef.current?.clientHeight || 0;
   
   // Calculate the total height
-  let totalHeight = 0;
-  if (hasFavorites) {
-      if(hasSeparator) totalHeight += separatorHeight;
-      const favoriteRows = Math.ceil(favoriteItems.length / numColumns);
-      totalHeight += favoriteRows * (itemHeight + gap);
-      if(hasAfterFavorites) totalHeight += afterFavoritesHeight;
-  }
-
-  if (nonFavoriteItems.length > 0) {
-      const nonFavoriteRows = Math.ceil(nonFavoriteItems.length / numColumns);
-      totalHeight += nonFavoriteRows * (itemHeight + gap);
-  }
+  const totalRows = Math.ceil(items.length / numColumns);
+  let totalHeight = totalRows * (itemHeight + gap);
+  if (hasSeparator) totalHeight += separatorHeight;
+  if (hasAfterFavorites) totalHeight += afterFavoritesHeight;
 
   // Calculate visible items
   const itemsToRender = [];
   let yOffset = 0;
+
+  const favoriteItems = items.slice(0, numFavorites);
+  const nonFavoriteItems = items.slice(numFavorites);
 
   if (hasSeparator) {
       if (yOffset + separatorHeight > scrollTop - containerHeight && yOffset < scrollTop + containerHeight) {
