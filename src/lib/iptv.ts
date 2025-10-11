@@ -52,7 +52,7 @@ export const getChannels = cache(async (): Promise<Channel[]> => {
     }
     
     // For performance and better UX on TV, we limit the number of channels.
-    return channels.filter(c => c.logo).slice(0, 200);
+    return channels.filter(c => c.logo);
   } catch (error) {
     console.error('Error fetching or parsing channels:', error);
     return [];

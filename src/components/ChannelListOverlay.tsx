@@ -186,15 +186,15 @@ const ChannelListOverlay = ({ allChannels, currentChannel, favoriteChannelIds, i
     >
         <Card
         className={cn(
-            'w-full aspect-[16/9] flex-shrink-0 cursor-pointer transition-all duration-200 bg-card/80 border-2',
-            selectedIndex === chan.index ? 'border-accent ring-2 ring-accent scale-105' : 'border-transparent',
-            currentChannel.index === chan.index && 'bg-primary/50'
+            'w-full aspect-[16/9] flex-shrink-0 cursor-pointer transition-all duration-200 bg-white/70 border-2 border-transparent',
+            selectedIndex === chan.index && 'scale-110 bg-white' ,
+            currentChannel.index === chan.index && 'ring-2 ring-accent border-accent'
         )}
         onMouseEnter={() => setSelectedIndex(chan.index)}
         >
         <CardContent className="flex flex-col items-center justify-center h-full p-2 text-center relative overflow-hidden">
             <ChannelImage channel={chan} />
-            <p className="text-xs text-foreground truncate w-full mt-auto">{chan.name}</p>
+            <p className="text-xs text-black truncate w-full mt-auto">{chan.name}</p>
         </CardContent>
         </Card>
     </div>
@@ -212,7 +212,7 @@ const ChannelListOverlay = ({ allChannels, currentChannel, favoriteChannelIds, i
                 <h2 className="text-xl font-bold text-white mb-4">
                   {favoriteChannels.length > 0 ? 'Favorite Channels' : 'Channels'}
                 </h2>
-                <div className="flex space-x-4 overflow-x-auto pb-4 no-scrollbar" ref={listRef}>
+                <div className="flex space-x-4 overflow-x-auto pb-4 no-scrollbar p-8 -m-8" ref={listRef}>
                     {channelsForQuickAccess.map((chan) => (
                     <div 
                         key={chan.id} 
@@ -222,14 +222,14 @@ const ChannelListOverlay = ({ allChannels, currentChannel, favoriteChannelIds, i
                     >
                         <Card
                         className={cn(
-                            'w-40 h-28 flex-shrink-0 cursor-pointer transition-all duration-200 bg-card/80 border-2',
-                            selectedIndex === chan.index ? 'border-accent ring-2 ring-accent scale-105' : 'border-transparent',
-                            currentChannel.index === chan.index && 'bg-primary/50'
+                            'w-40 h-28 flex-shrink-0 cursor-pointer transition-all duration-200 bg-white/70 border-2 border-transparent',
+                            selectedIndex === chan.index ? 'scale-110' : 'scale-100',
+                            currentChannel.index === chan.index && 'bg-white ring-2 ring-accent border-accent'
                         )}
                         >
                         <CardContent className="flex flex-col items-center justify-center h-full p-2 text-center relative overflow-hidden">
                             <ChannelImage channel={chan} />
-                            <p className="text-xs text-foreground truncate w-full mt-auto">{chan.name}</p>
+                            <p className="text-xs text-black truncate w-full mt-auto">{chan.name}</p>
                         </CardContent>
                         </Card>
                     </div>
