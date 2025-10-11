@@ -67,12 +67,11 @@ const ChannelListOverlay = ({ allChannels, currentChannel, initialState, setOver
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-
       const close = () => setOverlayState('hidden');
 
       if (initialState === 'list') {
+        e.preventDefault();
+        e.stopPropagation();
         switch (e.key) {
           case 'ArrowLeft':
             setSelectedIndex(prev => {
@@ -105,26 +104,31 @@ const ChannelListOverlay = ({ allChannels, currentChannel, initialState, setOver
             break;
         }
       } else if (initialState === 'grid') {
+        // We don't prevent default for character keys
         switch (e.key) {
           case 'Backspace':
-            if (searchTerm === '') close();
+            if (searchTerm === '') {
+              e.preventDefault();
+              e.stopPropagation();
+              close();
+            }
             break;
           case 'Escape':
+            e.preventDefault();
+            e.stopPropagation();
             close();
             break;
           case 'ArrowUp':
-            // Logic to move selection up in the grid
-            break;
           case 'ArrowDown':
-            // Logic to move selection down in the grid
-            break;
           case 'ArrowLeft':
-            // Logic to move selection left in the grid
-            break;
           case 'ArrowRight':
-            // Logic to move selection right in the grid
+             e.preventDefault();
+             e.stopPropagation();
+            // Logic to move selection in the grid would go here
             break;
           case 'Enter':
+            e.preventDefault();
+            e.stopPropagation();
             const selectedChannel = allChannels.find(c => c.index === selectedIndex);
             if (selectedChannel) {
               router.push(`/channels/${selectedChannel.index}`);
@@ -134,17 +138,14 @@ const ChannelListOverlay = ({ allChannels, currentChannel, initialState, setOver
         }
       }
     };
+    
+    // Use capture phase to ensure we can override default behavior
+    // for navigation keys even when the input is focused.
+    const eventOptions = { capture: true };
 
-    if (initialState !== 'grid') {
-      window.addEventListener('keydown', handleKeyDown);
-      return () => window.removeEventListener('keydown', handleKeyDown);
-    } else {
-        const gridElement = gridRef.current;
-        if(gridElement) {
-            gridElement.addEventListener('keydown', handleKeyDown);
-            return () => gridElement.removeEventListener('keydown', handleKeyDown);
-        }
-    }
+    window.addEventListener('keydown', handleKeyDown, eventOptions);
+    return () => window.removeEventListener('keydown', handleKeyDown, eventOptions);
+    
   }, [allChannels, router, selectedIndex, initialState, searchTerm, setOverlayState]);
 
   const selectChannel = (channel: Channel) => {
@@ -192,7 +193,7 @@ const ChannelListOverlay = ({ allChannels, currentChannel, initialState, setOver
         )}
 
         {initialState === 'grid' && (
-            <div className="flex flex-col h-full w-full" ref={gridRef}>
+            <div className="flex flex-col h-full w-full" ref={gridRef} tabIndex={-1}>
                 <div className="mb-4">
                     <Input 
                         ref={searchInputRef}
