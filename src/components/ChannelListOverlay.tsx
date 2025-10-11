@@ -11,6 +11,7 @@ import { Button } from './ui/button';
 import { Separator } from './ui/separator';
 import { cn } from '@/lib/utils';
 import type { OverlayState } from './VideoPlayer';
+import VirtualizedGrid from './VirtualizedGrid';
 
 interface ChannelListOverlayProps {
   allChannels: Channel[];
@@ -20,7 +21,7 @@ interface ChannelListOverlayProps {
   setOverlayState: (state: OverlayState) => void;
 }
 
-const ChannelImage = ({ channel }: { channel: Channel }) => {
+export const ChannelImage = ({ channel }: { channel: Channel }) => {
   const [imgSrc, setImgSrc] = useState<string | null>(channel.logo);
 
   useEffect(() => {
@@ -48,7 +49,6 @@ const ChannelListOverlay = ({ allChannels, currentChannel, favoriteChannelIds, i
   const [selectedIndex, setSelectedIndex] = useState(currentChannel.index);
   const [searchTerm, setSearchTerm] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const gridRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
   const favoriteChannels = useMemo(() => {
@@ -74,6 +74,7 @@ const ChannelListOverlay = ({ allChannels, currentChannel, favoriteChannelIds, i
         favorites: favs,
         nonFavorites: nonFavs,
         hasFavorites: favs.length > 0,
+        all: [...favs, ...nonFavs],
     };
   }, [allChannels, favoriteChannelIds, searchTerm]);
 
@@ -84,11 +85,11 @@ const ChannelListOverlay = ({ allChannels, currentChannel, favoriteChannelIds, i
   }, [initialState]);
 
   useEffect(() => {
-    const channels = initialState === 'list' ? channelsForQuickAccess : (filteredAndSortedChannels.favorites.length > 0 ? [...filteredAndSortedChannels.favorites, ...filteredAndSortedChannels.nonFavorites] : allChannels);
+    const channels = initialState === 'list' ? channelsForQuickAccess : filteredAndSortedChannels.all;
     const selectedId = channels.find(c => c.index === selectedIndex)?.id || channels[0]?.id;
     const itemEl = document.getElementById(`channel-item-${selectedId}`);
     itemEl?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }, [selectedIndex, initialState, channelsForQuickAccess, allChannels, filteredAndSortedChannels]);
+  }, [selectedIndex, initialState, channelsForQuickAccess, filteredAndSortedChannels.all]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -130,38 +131,63 @@ const ChannelListOverlay = ({ allChannels, currentChannel, favoriteChannelIds, i
             break;
         }
       } else if (initialState === 'grid') {
-        // We don't prevent default for character keys
+        const gridChannels = filteredAndSortedChannels.all;
+        const currentItemIndex = gridChannels.findIndex(c => c.index === selectedIndex);
+
+        const getNumColumns = () => {
+            if (window.innerWidth >= 1536) return 7;
+            if (window.innerWidth >= 1280) return 6;
+            if (window.innerWidth >= 1024) return 5;
+            if (window.innerWidth >= 768) return 4;
+            if (window.innerWidth >= 640) return 3;
+            return 2;
+        };
+
         switch (e.key) {
-          case 'Backspace':
-            if (searchTerm === '') {
-              e.preventDefault();
-              e.stopPropagation();
-              close();
-            }
-            break;
-          case 'Escape':
-            e.preventDefault();
-            e.stopPropagation();
-            close();
-            break;
-          case 'ArrowUp':
-          case 'ArrowDown':
-          case 'ArrowLeft':
-          case 'ArrowRight':
-             e.preventDefault();
-             e.stopPropagation();
-            // Logic to move selection in the grid would go here
-            break;
-          case 'Enter':
-            e.preventDefault();
-            e.stopPropagation();
-            const allSorted = [...filteredAndSortedChannels.favorites, ...filteredAndSortedChannels.nonFavorites];
-            const selectedChannel = allSorted.find(c => c.index === selectedIndex);
-            if (selectedChannel) {
-              router.push(`/channels/${selectedChannel.index}`);
-              close();
-            }
-            break;
+            case 'ArrowUp':
+            case 'ArrowDown':
+            case 'ArrowLeft':
+            case 'ArrowRight':
+                e.preventDefault();
+                e.stopPropagation();
+                const numColumns = getNumColumns();
+                let nextIndex = -1;
+
+                if (e.key === 'ArrowUp') {
+                    nextIndex = Math.max(0, currentItemIndex - numColumns);
+                } else if (e.key === 'ArrowDown') {
+                    nextIndex = Math.min(gridChannels.length - 1, currentItemIndex + numColumns);
+                } else if (e.key === 'ArrowLeft') {
+                    nextIndex = Math.max(0, currentItemIndex - 1);
+                } else if (e.key === 'ArrowRight') {
+                    nextIndex = Math.min(gridChannels.length - 1, currentItemIndex + 1);
+                }
+
+                if (nextIndex !== -1 && gridChannels[nextIndex]) {
+                    setSelectedIndex(gridChannels[nextIndex].index);
+                }
+                break;
+            case 'Backspace':
+                if (searchTerm === '') {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  close();
+                }
+                break;
+            case 'Escape':
+                e.preventDefault();
+                e.stopPropagation();
+                close();
+                break;
+            case 'Enter':
+                e.preventDefault();
+                e.stopPropagation();
+                const selectedChannel = gridChannels.find(c => c.index === selectedIndex);
+                if (selectedChannel) {
+                  router.push(`/channels/${selectedChannel.index}`);
+                  close();
+                }
+                break;
         }
       }
     };
@@ -243,7 +269,7 @@ const ChannelListOverlay = ({ allChannels, currentChannel, favoriteChannelIds, i
         )}
 
         {initialState === 'grid' && (
-            <div className="flex flex-col h-full w-full" ref={gridRef} tabIndex={-1}>
+            <div className="flex flex-col h-full w-full" tabIndex={-1}>
                 <div className="flex items-center mb-4">
                     <Button
                         variant="ghost"
@@ -262,22 +288,28 @@ const ChannelListOverlay = ({ allChannels, currentChannel, favoriteChannelIds, i
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
-                <div className="flex-1 overflow-y-auto no-scrollbar pr-2 -mr-2">
-                    {filteredAndSortedChannels.hasFavorites && (
-                        <>
-                            <div className="flex items-center my-4">
-                                <Star className="w-5 h-5 text-accent mr-2" />
-                                <h3 className="text-lg font-semibold text-white">Favorites</h3>
+                <div className="flex-1 overflow-y-auto no-scrollbar -mr-2">
+                    <VirtualizedGrid
+                        items={filteredAndSortedChannels.all}
+                        renderItem={renderChannelCard}
+                        itemHeight={120} // Approximate height of a card, adjust as needed
+                        gap={16}
+                        favoritesCount={filteredAndSortedChannels.hasFavorites ? filteredAndSortedChannels.favorites.length : 0}
+                        renderSeparator={() => (
+                            <>
+                                <div className="col-span-full flex items-center my-4">
+                                    <Star className="w-5 h-5 text-accent mr-2" />
+                                    <h3 className="text-lg font-semibold text-white">Favorites</h3>
+                                </div>
+                                {/* This separator will be rendered via the grid's structure */}
+                            </>
+                        )}
+                        renderAfterFavorites={() => (
+                             <div className="col-span-full">
+                                <Separator className="my-6 bg-border/50" />
                             </div>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-4">
-                                {filteredAndSortedChannels.favorites.map(renderChannelCard)}
-                            </div>
-                            <Separator className="my-6 bg-border/50" />
-                        </>
-                    )}
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-4">
-                        {filteredAndSortedChannels.nonFavorites.map(renderChannelCard)}
-                    </div>
+                        )}
+                    />
                 </div>
             </div>
         )}
