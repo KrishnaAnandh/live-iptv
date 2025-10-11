@@ -1,17 +1,17 @@
+
 'use client';
 
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
 import { type Channel } from '@/lib/iptv';
-import { Card, CardContent } from './ui/card';
 import { Input } from './ui/input';
-import { Tv, ChevronDown, ArrowLeft, Star } from 'lucide-react';
+import { ChevronDown, ArrowLeft, Star } from 'lucide-react';
 import { Button } from './ui/button';
 import { Separator } from './ui/separator';
 import { cn } from '@/lib/utils';
 import type { OverlayState } from './VideoPlayer';
 import VirtualizedGrid from './VirtualizedGrid';
+import { ChannelCard } from './ChannelCard';
 
 interface ChannelListOverlayProps {
   allChannels: Channel[];
@@ -20,29 +20,6 @@ interface ChannelListOverlayProps {
   initialState: OverlayState;
   setOverlayState: (state: OverlayState) => void;
 }
-
-export const ChannelImage = ({ channel }: { channel: Channel }) => {
-  const [imgSrc, setImgSrc] = useState<string | null>(channel.logo);
-
-  useEffect(() => {
-    setImgSrc(channel.logo);
-  }, [channel.logo]);
-
-  if (imgSrc) {
-    return (
-      <Image
-        src={imgSrc}
-        alt={channel.name}
-        width={80}
-        height={45}
-        className="object-contain max-h-12 w-auto"
-        onError={() => setImgSrc(null)}
-      />
-    );
-  }
-
-  return <Tv className="w-10 h-10 mb-1 text-muted-foreground" />;
-};
 
 const ChannelListOverlay = ({ allChannels, currentChannel, favoriteChannelIds, initialState, setOverlayState }: ChannelListOverlayProps) => {
   const router = useRouter();
@@ -210,61 +187,40 @@ const ChannelListOverlay = ({ allChannels, currentChannel, favoriteChannelIds, i
   }
 
   const renderChannelCard = (chan: Channel) => (
-    <div 
-        key={chan.id} 
-        id={`channel-item-${chan.id}`} 
-        onClick={() => selectChannel(chan)}
-    >
-        <Card
-        className={cn(
-            'w-full aspect-[16/9] flex-shrink-0 cursor-pointer transition-all duration-200 bg-white/70 border-2 border-transparent',
-            selectedIndex === chan.index && 'scale-110 bg-white' ,
-            currentChannel.index === chan.index && 'ring-1 ring-accent'
-        )}
-        onMouseEnter={() => setSelectedIndex(chan.index)}
-        >
-        <CardContent className="flex flex-col items-center justify-center h-full p-2 text-center relative overflow-hidden">
-            <ChannelImage channel={chan} />
-            <p className="text-xs text-black truncate w-full mt-auto">{chan.name}</p>
-        </CardContent>
-        </Card>
-    </div>
+    <ChannelCard
+      key={chan.id}
+      channel={chan}
+      isSelected={selectedIndex === chan.index}
+      isCurrent={currentChannel.index === chan.index}
+      onClick={() => selectChannel(chan)}
+      onMouseEnter={() => setSelectedIndex(chan.index)}
+      view="grid"
+    />
   );
 
   return (
     <div
       className={cn(
         "fixed inset-0 bg-black/80 backdrop-blur-sm z-10 transition-all duration-300 ease-in-out",
-        initialState === 'list' ? 'bg-gradient-to-t from-black via-black/80 to-transparent backdrop-blur-none' : 'p-4 sm:p-8'
+        initialState === 'list' ? 'bg-gradient-to-t from-black via-black/30 to-transparent backdrop-blur-none' : 'p-4 sm:p-8'
       )}
     >
         {initialState === 'list' && (
             <div className="fixed bottom-0 left-0 right-0 p-4">
-                <h2 className="text-xl font-bold text-white mb-4">
+                <h2 className="text-xl font-bold text-white mb-2 ml-4">
                   {favoriteChannels.length > 0 ? 'Favorite Channels' : 'Channels'}
                 </h2>
-                <div className="flex space-x-4 overflow-x-auto pb-4 no-scrollbar p-8 -m-8" ref={listRef}>
+                <div className="flex space-x-0 overflow-x-auto mb-2 no-scrollbar" ref={listRef}>
                     {channelsForQuickAccess.map((chan) => (
-                    <div 
-                        key={chan.id} 
-                        id={`channel-item-${chan.id}`} 
+                      <ChannelCard
+                        key={chan.id}
+                        channel={chan}
+                        isSelected={selectedIndex === chan.index}
+                        isCurrent={currentChannel.index === chan.index}
                         onClick={() => selectChannel(chan)}
-                        className="w-40"
-                    >
-                        <Card
-                        className={cn(
-                            'w-40 h-28 flex-shrink-0 cursor-pointer transition-all duration-200 bg-white/70 border-2 border-transparent',
-                            selectedIndex === chan.index ? 'scale-110' : 'scale-100',
-                            currentChannel.index === chan.index && 'bg-white ring-2 ring-accent'
-                        )}
-                        >
-                        <CardContent className="flex flex-col items-center justify-center h-full p-2 text-center relative overflow-hidden">
-                            <ChannelImage channel={chan} />
-                            <p className="text-xs text-black truncate w-full mt-auto">{chan.name}</p>
-                            {currentChannel.index === chan.index && <span className="absolute w-3 h-3 bg-pink-600 rounded-full top-2 right-2 animate-pulse duration-4000" />}
-                        </CardContent>
-                        </Card>
-                    </div>
+                        onMouseEnter={() => setSelectedIndex(chan.index)}
+                        view="list"
+                      />
                     ))}
                 </div>
                 <div className="flex justify-center items-center mt-2 text-sm text-muted-foreground animate-pulse">
