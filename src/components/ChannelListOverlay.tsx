@@ -68,8 +68,14 @@ const ChannelListOverlay = ({ allChannels, currentChannel, favoriteChannelIds, i
 
   useEffect(() => {
     const channels = initialState === 'list' ? channelsForQuickAccess : [...favoriteItems, ...nonFavoriteItems];
-    const selectedId = channels.find(c => c.index === selectedIndex)?.id || channels[0]?.id;
-    const itemEl = document.getElementById(`channel-item-${selectedId}`);
+    const selectedItem = channels.find(c => c.index === selectedIndex);
+    if (!selectedItem) {
+      if (channels.length > 0) {
+        setSelectedIndex(channels[0].index);
+      }
+      return;
+    }
+    const itemEl = document.getElementById(`channel-item-${selectedItem.id}`);
     itemEl?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }, [selectedIndex, initialState, channelsForQuickAccess, favoriteItems, nonFavoriteItems]);
 
@@ -117,13 +123,16 @@ const ChannelListOverlay = ({ allChannels, currentChannel, favoriteChannelIds, i
         const currentItemIndex = gridChannels.findIndex(c => c.index === selectedIndex);
 
         const getNumColumns = () => {
-            if (window.innerWidth >= 1536) return 7;
-            if (window.innerWidth >= 1280) return 6;
-            if (window.innerWidth >= 1024) return 5;
-            if (window.innerWidth >= 768) return 4;
-            if (window.innerWidth >= 640) return 3;
-            return 2;
+            if (typeof window === 'undefined') return 6;
+            const cardWidth = 160 + 16; // w-40 + p-2*2 * 4px/rem
+            return Math.floor(window.innerWidth / cardWidth);
         };
+        
+        const isNavigationKey = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', 'Escape', 'Backspace'].includes(e.key);
+        if (isNavigationKey && document.activeElement === searchInputRef.current && e.key !== 'Enter' && e.key !== 'Escape') {
+             if (e.key === 'Backspace' && searchTerm !== '') return;
+             if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') return;
+        }
 
         switch (e.key) {
             case 'ArrowUp':
@@ -150,7 +159,7 @@ const ChannelListOverlay = ({ allChannels, currentChannel, favoriteChannelIds, i
                 }
                 break;
             case 'Backspace':
-                if (searchTerm === '') {
+                if (searchTerm === '' && document.activeElement !== searchInputRef.current) {
                   e.preventDefault();
                   e.stopPropagation();
                   close();
@@ -194,7 +203,6 @@ const ChannelListOverlay = ({ allChannels, currentChannel, favoriteChannelIds, i
       isCurrent={currentChannel.index === chan.index}
       onClick={() => selectChannel(chan)}
       onMouseEnter={() => setSelectedIndex(chan.index)}
-      view="grid"
     />
   );
 
@@ -210,7 +218,7 @@ const ChannelListOverlay = ({ allChannels, currentChannel, favoriteChannelIds, i
                 <h2 className="text-xl font-bold text-white mb-2 ml-4">
                   {favoriteChannels.length > 0 ? 'Favorite Channels' : 'Channels'}
                 </h2>
-                <div className="flex space-x-0 overflow-x-auto mb-2 no-scrollbar" ref={listRef}>
+                <div className="flex overflow-x-auto mb-2 no-scrollbar" ref={listRef}>
                     {channelsForQuickAccess.map((chan) => (
                       <ChannelCard
                         key={chan.id}
@@ -219,7 +227,6 @@ const ChannelListOverlay = ({ allChannels, currentChannel, favoriteChannelIds, i
                         isCurrent={currentChannel.index === chan.index}
                         onClick={() => selectChannel(chan)}
                         onMouseEnter={() => setSelectedIndex(chan.index)}
-                        view="list"
                       />
                     ))}
                 </div>
@@ -254,17 +261,18 @@ const ChannelListOverlay = ({ allChannels, currentChannel, favoriteChannelIds, i
                     <VirtualizedGrid
                         items={[...favoriteItems, ...nonFavoriteItems]}
                         renderItem={renderChannelCard}
-                        itemHeight={120} // Approximate height of a card, adjust as needed
-                        gap={16}
+                        itemHeight={112 + 16} // h-28 + p-2 * 2
+                        itemWidth={160 + 16} // w-40 + p-2 * 2
+                        gap={0}
                         numFavorites={favoriteItems.length}
                         renderSeparator={() => (
-                            <div className="col-span-full flex items-center my-4">
+                            <div className="col-span-full flex items-center my-4 px-2">
                                 <Star className="w-5 h-5 text-accent mr-2" />
                                 <h3 className="text-lg font-semibold text-white">Favorites</h3>
                             </div>
                         )}
                         renderAfterFavorites={() => (
-                             <div className="col-span-full">
+                             <div className="col-span-full px-2">
                                 <Separator className="my-6 bg-border/50" />
                             </div>
                         )}
