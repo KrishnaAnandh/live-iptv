@@ -1,4 +1,4 @@
-import { cache } from 'next/cache';
+import { cache } from 'react';
 
 export interface Channel {
   id: string;
@@ -57,4 +57,4 @@ export const getChannels = cache(async (): Promise<Channel[]> => {
     console.error('Error fetching or parsing channels:', error);
     return [];
   }
-}, ['iptv-channels']);
+});
