@@ -145,7 +145,7 @@ const ChannelListOverlay = ({ allChannels, currentChannel, initialState, setOver
             return () => gridElement.removeEventListener('keydown', handleKeyDown);
         }
     }
-  }, [allChannels, onClose, router, selectedIndex, initialState, searchTerm]);
+  }, [allChannels, router, selectedIndex, initialState, searchTerm, setOverlayState]);
 
   const selectChannel = (channel: Channel) => {
     router.push(`/channels/${channel.index}`);
