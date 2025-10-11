@@ -47,106 +47,80 @@ const VirtualizedGrid = <T extends { id: string | number }>({
   const onScroll = (e: React.UIEvent<HTMLDivElement>) => {
     setScrollTop(e.currentTarget.scrollTop);
   };
+
+  const separatorHeight = numFavorites > 0 && renderSeparator ? 80 : 0;
+  const afterFavoritesHeight = numFavorites > 0 && renderAfterFavorites ? 50 : 0;
   
-  const separatorHeight = 80;
-  const afterFavoritesHeight = 50;
-
-  const hasFavorites = numFavorites > 0;
-  const hasSeparator = hasFavorites && renderSeparator;
-  const hasAfterFavorites = hasFavorites && renderAfterFavorites;
-
   const containerHeight = containerRef.current?.clientHeight || 0;
-  
-  // Calculate the total height
-  const totalRows = Math.ceil(items.length / numColumns);
-  let totalHeight = totalRows * (itemHeight + gap);
-  if (hasSeparator) totalHeight += separatorHeight;
-  if (hasAfterFavorites) totalHeight += afterFavoritesHeight;
+  const fullItemHeight = itemHeight + gap;
 
-  // Calculate visible items
+  // Calculate total height
+  const numFavoriteRows = Math.ceil(numFavorites / numColumns);
+  const numNonFavoriteRows = Math.ceil((items.length - numFavorites) / numColumns);
+  const totalHeight = (numFavoriteRows + numNonFavoriteRows) * fullItemHeight + separatorHeight + afterFavoritesHeight;
+
+  // Calculate visible range
+  const startIndex = Math.max(0, Math.floor(scrollTop / fullItemHeight) * numColumns - numColumns);
+  const endIndex = Math.min(items.length, Math.ceil((scrollTop + containerHeight) / fullItemHeight) * numColumns + numColumns);
+
   const itemsToRender = [];
-  let yOffset = 0;
 
   const favoriteItems = items.slice(0, numFavorites);
   const nonFavoriteItems = items.slice(numFavorites);
 
-  if (hasSeparator) {
-      if (yOffset + separatorHeight > scrollTop - containerHeight && yOffset < scrollTop + containerHeight) {
-          itemsToRender.push(
-              <div key="separator" style={{ position: 'absolute', top: yOffset, width: '100%' }}>
-                  {renderSeparator()}
-              </div>
-          );
-      }
-      yOffset += separatorHeight;
-  }
-
-  // Favorites
-  const favoriteRows = Math.ceil(favoriteItems.length / numColumns);
-  for (let i = 0; i < favoriteRows; i++) {
-      const rowY = yOffset + i * (itemHeight + gap);
-      if (rowY + itemHeight > scrollTop - containerHeight && rowY < scrollTop + containerHeight) {
-          for (let j = 0; j < numColumns; j++) {
-              const itemIndex = i * numColumns + j;
-              if (itemIndex < favoriteItems.length) {
-                  itemsToRender.push(
-                      <div
-                          key={`fav-${favoriteItems[itemIndex].id}`}
-                          className="absolute"
-                          style={{
-                              top: rowY,
-                              left: `${(100 / numColumns) * j}%`,
-                              width: `${100 / numColumns}%`,
-                              padding: `${gap / 2}px`,
-                          }}
-                      >
-                          {renderItem(favoriteItems[itemIndex])}
-                      </div>
-                  );
-              }
-          }
-      }
-  }
-  yOffset += favoriteRows * (itemHeight + gap);
+  const hasFavorites = numFavorites > 0;
   
-  if (hasAfterFavorites) {
-      if (yOffset + afterFavoritesHeight > scrollTop - containerHeight && yOffset < scrollTop + containerHeight) {
-          itemsToRender.push(
-              <div key="after-favorites" style={{ position: 'absolute', top: yOffset, width: '100%', padding: `0 ${gap/2}px` }}>
-                  {renderAfterFavorites()}
-              </div>
-          );
-      }
-      yOffset += afterFavoritesHeight;
+  // Separator
+  if (hasFavorites && renderSeparator) {
+    itemsToRender.push(<div key="separator" style={{ position: 'absolute', top: 0, width: '100%' }}>{renderSeparator()}</div>);
   }
 
-  // Non-favorites
-  const nonFavoriteRows = Math.ceil(nonFavoriteItems.length / numColumns);
-  for (let i = 0; i < nonFavoriteRows; i++) {
-      const rowY = yOffset + i * (itemHeight + gap);
-      if (rowY + itemHeight > scrollTop - containerHeight && rowY < scrollTop + containerHeight) {
-          for (let j = 0; j < numColumns; j++) {
-              const itemIndex = i * numColumns + j;
-              if (itemIndex < nonFavoriteItems.length) {
-                  itemsToRender.push(
-                      <div
-                          key={`nonfav-${nonFavoriteItems[itemIndex].id}`}
-                          className="absolute"
-                          style={{
-                              top: rowY,
-                              left: `${(100 / numColumns) * j}%`,
-                              width: `${100 / numColumns}%`,
-                              padding: `${gap / 2}px`,
-                          }}
-                      >
-                          {renderItem(nonFavoriteItems[itemIndex])}
-                      </div>
-                  );
-              }
-          }
-      }
+  // Render logic
+  const renderItems = (itemsToProcess: T[], isFavorite: boolean) => {
+    const baseRowOffset = isFavorite ? separatorHeight : (Math.ceil(numFavorites / numColumns) * fullItemHeight) + separatorHeight + afterFavoritesHeight;
+    const baseIndexOffset = isFavorite ? 0 : numFavorites;
+
+    for (let i = 0; i < itemsToProcess.length; i++) {
+        const item = itemsToProcess[i];
+        const globalIndex = i + baseIndexOffset;
+
+        if (globalIndex >= startIndex && globalIndex <= endIndex) {
+            const rowIndex = Math.floor(i / numColumns);
+            const colIndex = i % numColumns;
+            const yPos = baseRowOffset + rowIndex * fullItemHeight;
+            const xPos = `${(100 / numColumns) * colIndex}%`;
+
+            itemsToRender.push(
+                <div
+                    key={item.id}
+                    className="absolute"
+                    style={{
+                        top: yPos,
+                        left: xPos,
+                        width: `${100 / numColumns}%`,
+                        height: itemHeight,
+                        padding: `${gap / 2}px`,
+                    }}
+                >
+                    {renderItem(item)}
+                </div>
+            );
+        }
+    }
+  }
+  
+  renderItems(favoriteItems, true);
+
+  if (hasFavorites && renderAfterFavorites) {
+    const afterFavsY = separatorHeight + Math.ceil(numFavorites / numColumns) * fullItemHeight;
+    itemsToRender.push(
+        <div key="after-favorites" style={{ position: 'absolute', top: afterFavsY, width: '100%', padding: `0 ${gap/2}px` }}>
+            {renderAfterFavorites()}
+        </div>
+    );
   }
 
+  renderItems(nonFavoriteItems, false);
 
   return (
     <div
