@@ -19,17 +19,9 @@ export function useFavorites() {
     }
   }, []);
 
-  const saveFavorites = (newFavorites: string[]) => {
-    try {
-      setFavorites(newFavorites);
-      localStorage.setItem(FAVORITES_KEY, JSON.stringify(newFavorites));
-    } catch (error) {
-       console.error("Could not save favorites to local storage", error);
-    }
-  };
-
   const addFavorite = useCallback((channelId: string) => {
     setFavorites(prev => {
+        if (prev.includes(channelId)) return prev;
         const newFavs = [...prev, channelId];
         localStorage.setItem(FAVORITES_KEY, JSON.stringify(newFavs));
         return newFavs;
@@ -48,5 +40,5 @@ export function useFavorites() {
     return favorites.includes(channelId);
   }, [favorites]);
 
-  return { addFavorite, removeFavorite, isFavorite };
+  return { favorites, addFavorite, removeFavorite, isFavorite };
 }

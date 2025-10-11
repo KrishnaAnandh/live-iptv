@@ -14,7 +14,7 @@ export type OverlayState = 'hidden' | 'list' | 'grid';
 
 export default function VideoPlayer({ channel, allChannels }: { channel: Channel; allChannels: Channel[] }) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const { isFavorite, addFavorite, removeFavorite } = useFavorites();
+  const { favorites, isFavorite, addFavorite, removeFavorite } = useFavorites();
   const [showUi, setShowUi] = useState(true);
   const [overlayState, setOverlayState] = useState<OverlayState>('hidden');
   const [isLoading, setIsLoading] = useState(true);
@@ -154,6 +154,7 @@ export default function VideoPlayer({ channel, allChannels }: { channel: Channel
         <ChannelListOverlay
           allChannels={allChannels}
           currentChannel={channel}
+          favoriteChannelIds={favorites}
           initialState={overlayState}
           setOverlayState={setOverlayState}
         />
