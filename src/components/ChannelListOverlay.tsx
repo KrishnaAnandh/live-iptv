@@ -52,31 +52,28 @@ const ChannelListOverlay = ({ allChannels, currentChannel, favoriteChannelIds, i
   const listRef = useRef<HTMLDivElement>(null);
 
   const favoriteChannels = useMemo(() => {
-    return favoriteChannelIds.map(id => allChannels.find(c => c.id === id)).filter(Boolean) as Channel[];
+    const favMap = new Map(allChannels.filter(c => favoriteChannelIds.includes(c.id)).map(c => [c.id, c]));
+    return favoriteChannelIds.map(id => favMap.get(id)).filter(Boolean) as Channel[];
   }, [allChannels, favoriteChannelIds]);
-
+  
   const channelsForQuickAccess = useMemo(() => {
     return favoriteChannels.length > 0 ? favoriteChannels : allChannels.slice(0, 20);
   }, [allChannels, favoriteChannels]);
   
-  const filteredAndSortedChannels = useMemo(() => {
-    const favorites = new Set(favoriteChannelIds);
-    let channels = allChannels;
-
+  const { favoriteItems, nonFavoriteItems } = useMemo(() => {
+    let sourceChannels = allChannels;
     if (searchTerm) {
-      channels = allChannels.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase()));
+        sourceChannels = allChannels.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase()));
     }
-    
-    const favs = channels.filter(c => favorites.has(c.id));
-    const nonFavs = channels.filter(c => !favorites.has(c.id));
-    
-    return {
-        favorites: favs,
-        nonFavorites: nonFavs,
-        hasFavorites: favs.length > 0,
-        all: [...favs, ...nonFavs],
-    };
-  }, [allChannels, favoriteChannelIds, searchTerm]);
+    const favoriteSet = new Set(favoriteChannelIds);
+    const favs = sourceChannels.filter(c => favoriteSet.has(c.id));
+    const nonFavs = sourceChannels.filter(c => !favoriteSet.has(c.id));
+
+    // Re-order favorites based on favoriteChannelIds if not searching
+    const orderedFavs = searchTerm ? favs : favoriteChannels.filter(c => favs.some(f => f.id === c.id));
+
+    return { favoriteItems: orderedFavs, nonFavoriteItems: nonFavs };
+  }, [allChannels, favoriteChannelIds, searchTerm, favoriteChannels]);
 
   useEffect(() => {
     if (initialState === 'grid') {
@@ -85,11 +82,11 @@ const ChannelListOverlay = ({ allChannels, currentChannel, favoriteChannelIds, i
   }, [initialState]);
 
   useEffect(() => {
-    const channels = initialState === 'list' ? channelsForQuickAccess : filteredAndSortedChannels.all;
+    const channels = initialState === 'list' ? channelsForQuickAccess : [...favoriteItems, ...nonFavoriteItems];
     const selectedId = channels.find(c => c.index === selectedIndex)?.id || channels[0]?.id;
     const itemEl = document.getElementById(`channel-item-${selectedId}`);
     itemEl?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }, [selectedIndex, initialState, channelsForQuickAccess, filteredAndSortedChannels.all]);
+  }, [selectedIndex, initialState, channelsForQuickAccess, favoriteItems, nonFavoriteItems]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -131,7 +128,7 @@ const ChannelListOverlay = ({ allChannels, currentChannel, favoriteChannelIds, i
             break;
         }
       } else if (initialState === 'grid') {
-        const gridChannels = filteredAndSortedChannels.all;
+        const gridChannels = [...favoriteItems, ...nonFavoriteItems];
         const currentItemIndex = gridChannels.findIndex(c => c.index === selectedIndex);
 
         const getNumColumns = () => {
@@ -197,7 +194,7 @@ const ChannelListOverlay = ({ allChannels, currentChannel, favoriteChannelIds, i
     window.addEventListener('keydown', handleKeyDown, eventOptions);
     return () => window.removeEventListener('keydown', handleKeyDown, eventOptions);
     
-  }, [channelsForQuickAccess, router, selectedIndex, initialState, searchTerm, setOverlayState, filteredAndSortedChannels]);
+  }, [channelsForQuickAccess, router, selectedIndex, initialState, searchTerm, setOverlayState, favoriteItems, nonFavoriteItems]);
 
   const selectChannel = (channel: Channel) => {
     router.push(`/channels/${channel.index}`);
@@ -214,7 +211,7 @@ const ChannelListOverlay = ({ allChannels, currentChannel, favoriteChannelIds, i
         className={cn(
             'w-full aspect-[16/9] flex-shrink-0 cursor-pointer transition-all duration-200 bg-white/70 border-2 border-transparent',
             selectedIndex === chan.index && 'scale-110 bg-white' ,
-            currentChannel.index === chan.index && 'ring-2 ring-accent border-accent'
+            currentChannel.index === chan.index && 'ring-1 ring-accent'
         )}
         onMouseEnter={() => setSelectedIndex(chan.index)}
         >
@@ -250,12 +247,13 @@ const ChannelListOverlay = ({ allChannels, currentChannel, favoriteChannelIds, i
                         className={cn(
                             'w-40 h-28 flex-shrink-0 cursor-pointer transition-all duration-200 bg-white/70 border-2 border-transparent',
                             selectedIndex === chan.index ? 'scale-110' : 'scale-100',
-                            currentChannel.index === chan.index && 'bg-white ring-2 ring-accent border-accent'
+                            currentChannel.index === chan.index && 'bg-white ring-2 ring-accent'
                         )}
                         >
                         <CardContent className="flex flex-col items-center justify-center h-full p-2 text-center relative overflow-hidden">
                             <ChannelImage channel={chan} />
                             <p className="text-xs text-black truncate w-full mt-auto">{chan.name}</p>
+                            {currentChannel.index === chan.index && <span className="absolute w-3 h-3 bg-red-500 rounded-full top-2 right-2 animate-pulse duration-4000" />}
                         </CardContent>
                         </Card>
                     </div>
@@ -290,19 +288,16 @@ const ChannelListOverlay = ({ allChannels, currentChannel, favoriteChannelIds, i
                 </div>
                 <div className="flex-1 overflow-y-auto no-scrollbar -mr-2">
                     <VirtualizedGrid
-                        items={filteredAndSortedChannels.all}
+                        favoriteItems={favoriteItems}
+                        nonFavoriteItems={nonFavoriteItems}
                         renderItem={renderChannelCard}
                         itemHeight={120} // Approximate height of a card, adjust as needed
                         gap={16}
-                        favoritesCount={filteredAndSortedChannels.hasFavorites ? filteredAndSortedChannels.favorites.length : 0}
                         renderSeparator={() => (
-                            <>
-                                <div className="col-span-full flex items-center my-4">
-                                    <Star className="w-5 h-5 text-accent mr-2" />
-                                    <h3 className="text-lg font-semibold text-white">Favorites</h3>
-                                </div>
-                                {/* This separator will be rendered via the grid's structure */}
-                            </>
+                            <div className="col-span-full flex items-center my-4">
+                                <Star className="w-5 h-5 text-accent mr-2" />
+                                <h3 className="text-lg font-semibold text-white">Favorites</h3>
+                            </div>
                         )}
                         renderAfterFavorites={() => (
                              <div className="col-span-full">
