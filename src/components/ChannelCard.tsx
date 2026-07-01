@@ -50,7 +50,7 @@ export const ChannelCard = ({ channel, isSelected, isCurrent, onClick, onMouseEn
       <Card
         className={cn(
           'w-40 h-28 flex-shrink-0 cursor-pointer transition-all duration-200 bg-white opacity-80 border-2 border-transparent',
-          isSelected && 'scale-110 opacity-100 shadow-lg ring-2 ring-accent'
+          isSelected && 'scale-105 opacity-100 shadow-lg ring-2 ring-accent ring-offset-2 ring-offset-black'
         )}
       >
         <CardContent className="flex flex-col items-center justify-center h-full p-2 text-center relative overflow-hidden">

@@ -45,7 +45,7 @@ const VirtualizedGrid = <T extends { id: string | number }>({
     setScrollTop(e.currentTarget.scrollTop);
   };
 
-  const separatorHeight = numFavorites > 0 && renderSeparator ? 60 : 0;
+  const separatorHeight = numFavorites > 0 && renderSeparator ? 40 : 0;
   const afterFavoritesHeight = numFavorites > 0 && renderAfterFavorites ? 50 : 0;
   
   const fullItemHeight = itemHeight + gap;

@@ -215,8 +215,15 @@ const ChannelListOverlay = ({ allChannels, currentChannel, favoriteChannelIds, i
     >
         {initialState === 'list' && (
             <div className="fixed bottom-0 left-0 right-0 p-4">
-                <h2 className="text-xl font-bold text-white mb-2 ml-4">
-                  {favoriteChannels.length > 0 ? 'Favorite Channels' : 'Channels'}
+                <h2 className="text-xl font-bold text-white mb-2 ">
+                  {favoriteChannels.length > 0 ? (
+                    <div className="col-span-full flex items-center mx-2 px-2">
+                        <Star className="w-4 h-4 text-white mr-2" />
+                        <h3 className="text-lg font-semibold text-white ">Favorites</h3>
+                    </div>
+                    ) : (
+                    <h3 className="text-lg font-semibold text-white ">All Channels</h3>
+                  )}
                 </h2>
                 <div className="flex overflow-x-auto mb-2 no-scrollbar" ref={listRef}>
                     {channelsForQuickAccess.map((chan) => (
@@ -266,9 +273,9 @@ const ChannelListOverlay = ({ allChannels, currentChannel, favoriteChannelIds, i
                         gap={0}
                         numFavorites={favoriteItems.length}
                         renderSeparator={() => (
-                            <div className="col-span-full flex items-center my-4 px-2">
-                                <Star className="w-5 h-5 text-accent mr-2" />
-                                <h3 className="text-lg font-semibold text-white">Favorites</h3>
+                            <div className="col-span-full flex items-center mx-2 px-2">
+                                <Star className="w-4 h-4 text-white mr-2" />
+                                <h3 className="text-lg font-semibold text-white ">Favorites</h3>
                             </div>
                         )}
                         renderAfterFavorites={() => (

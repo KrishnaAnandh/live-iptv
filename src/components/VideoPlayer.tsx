@@ -139,7 +139,7 @@ export default function VideoPlayer({ channel, allChannels }: { channel: Channel
       </div>
 
       {(isLoading || error) && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 text-white">
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 text-white pointer-events-none">
           {isLoading && <Loader2 className="h-16 w-16 animate-spin text-accent" />}
           {error && !isLoading && (
             <>
