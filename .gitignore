@@ -51,7 +51,7 @@ firestore-debug.log
 /local.properties
 /.idea
 .DS_Store
-/build
+/android/app/build
 /captures
 .externalNativeBuild
 .cxx
