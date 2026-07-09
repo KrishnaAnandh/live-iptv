@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">StreamDeck TV</string>
+    <string name="loading_channels">Loading channels…</string>
+    <string name="channel_load_error">Could not load channel list. Please try again later.</string>
+    <string name="stream_unavailable">This stream is currently unavailable.</string>
+    <string name="search_channels">Search channels…</string>
+    <string name="favorites">Favorites</string>
+    <string name="all_channels">All Channels</string>
+    <string name="explore_channels">Explore Channels</string>
+    <string name="add_favorite">Add to favorites</string>
+    <string name="remove_favorite">Remove from favorites</string>
+</resources>
